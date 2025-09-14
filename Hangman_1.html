@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hangman Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      display: flex; flex-direction: column; align-items: center;
+      margin: 0; padding: 20px;
+    }
+    h1 { color: #333; margin-bottom: 5px; }
+    h5 { color: blue; margin-top: 0; }
+    #game-container {
+      display: flex; align-items: flex-start; gap: 40px;
+      max-width: 800px; width: 100%; justify-content: center;
+    }
+    #hangmanCanvas {
+      background-color: #fff; border: 1px solid #ccc;
+      width: 200px; height: 250px; flex-shrink: 0;
+    }
+    #game-info { flex: 1; max-width: 550px; }
+    #word { font-size: 2.5rem; letter-spacing: 0.3em; margin: 20px 0; color: #333; }
+    #letters { display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+    .letter-button {
+      background-color: #3498db; color: white; border: none;
+      margin: 5px; padding: 15px 20px; font-size: 1.2rem;
+      border-radius: 5px; cursor: pointer; transition: 0.3s;
+    }
+    .letter-button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+    #message { font-size: 1.5rem; margin-top: 15px; min-height: 40px; }
+    #hangman-status { font-size: 1.2rem; color: #e74c3c; margin-top: 10px; }
+    .switch-btn {
+      margin-top: 20px; background: #2ecc71; color: white;
+      padding: 12px 25px; border: none; font-size: 1rem;
+      border-radius: 8px; cursor: pointer; transition: 0.3s;
+    }
+    .switch-btn:hover { background: #27ae60; }
+  </style>
+</head>
+<body>
+  <h1>Hangman Game</h1>
+  <h5>Computer engineering related words</h5>
+
+  <div id="game-container">
+    <canvas id="hangmanCanvas" width="200" height="250"></canvas>
+    <div id="game-info">
+      <div id="word">_ _ _ _ _ _</div>
+      <div id="letters"></div>
+      <div id="message"></div>
+      <div id="hangman-status">Wrong guesses: 0 / 6</div>
+    </div>
+  </div>
+
+  <!-- Button to open Tic Tac Toe page -->
+  <button class="switch-btn" onclick="window.location.href='Tic_Tac_Toc.html' ">
+    🎮 Play Tic Tac Toe
+</button>
+
+  <script>
+    const wordList = ["ALGORITHM","DATABASE","COMPILER","SOFTWARE","HARDWARE","DEBUGGER",
+      "FIREWALL","ENCRYPTION","PROTOCOL","BINARY","CACHE","PROCESSOR","INTERFACE",
+      "THREAD","MEMORY","STORAGE","ROUTER","SWITCH","FIRMWARE","LATENCY"];
+    const maxWrong = 6;
+    let selectedWord = "";
+    let guessedLetters = [];
+    let wrongGuesses = 0;
+
+    const wordDiv = document.getElementById('word');
+    const lettersDiv = document.getElementById('letters');
+    const messageDiv = document.getElementById('message');
+    const statusDiv = document.getElementById('hangman-status');
+    const canvas = document.getElementById('hangmanCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function drawGallow() {
+      ctx.lineWidth = 3; ctx.strokeStyle = "#333";
+      ctx.beginPath(); ctx.moveTo(10,230); ctx.lineTo(190,230); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(50,230); ctx.lineTo(50,20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(50,20); ctx.lineTo(140,20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(140,20); ctx.lineTo(140,40); ctx.stroke();
+    }
+    function drawHead(){ ctx.beginPath(); ctx.arc(140,60,20,0,Math.PI*2,true); ctx.stroke(); }
+    function drawBody(){ ctx.beginPath(); ctx.moveTo(140,80); ctx.lineTo(140,140); ctx.stroke(); }
+    function drawLeftArm(){ ctx.beginPath(); ctx.moveTo(140,90); ctx.lineTo(110,120); ctx.stroke(); }
+    function drawRightArm(){ ctx.beginPath(); ctx.moveTo(140,90); ctx.lineTo(170,120); ctx.stroke(); }
+    function drawLeftLeg(){ ctx.beginPath(); ctx.moveTo(140,140); ctx.lineTo(110,180); ctx.stroke(); }
+    function drawRightLeg(){ ctx.beginPath(); ctx.moveTo(140,140); ctx.lineTo(170,180); ctx.stroke(); }
+    function clearCanvas(){ ctx.clearRect(0,0,canvas.width,canvas.height); }
+
+    function updateHangman(){
+      clearCanvas(); drawGallow();
+      if(wrongGuesses>0) drawHead();
+      if(wrongGuesses>1) drawBody();
+      if(wrongGuesses>2) drawLeftArm();
+      if(wrongGuesses>3) drawRightArm();
+      if(wrongGuesses>4) drawLeftLeg();
+      if(wrongGuesses>5) drawRightLeg();
+    }
+
+    function init(){
+      selectedWord = wordList[Math.floor(Math.random()*wordList.length)];
+      guessedLetters=[]; wrongGuesses=0;
+      statusDiv.textContent=`Wrong guesses: ${wrongGuesses} / ${maxWrong}`;
+      messageDiv.textContent=""; updateWordDisplay(); lettersDiv.innerHTML="";
+      for(let i=65;i<=90;i++){
+        const btn=document.createElement('button');
+        btn.textContent=String.fromCharCode(i);
+        btn.classList.add('letter-button');
+        btn.addEventListener('click',letterClick);
+        lettersDiv.appendChild(btn);
+      }
+      updateHangman();
+    }
+
+    function updateWordDisplay(){
+      let display=""; 
+      for(let letter of selectedWord){
+        if(guessedLetters.includes(letter)) display+=letter+" ";
+        else display+="_ ";
+      }
+      wordDiv.textContent=display.trim();
+    }
+
+    function letterClick(e){
+      const letter=e.target.textContent;
+      e.target.disabled=true;
+      if(selectedWord.includes(letter)){
+        guessedLetters.push(letter); updateWordDisplay(); checkWin();
+      } else {
+        wrongGuesses++; 
+        statusDiv.textContent=`Wrong guesses: ${wrongGuesses} / ${maxWrong}`;
+        updateHangman(); checkLose();
+      }
+    }
+
+    function checkWin(){
+      if(selectedWord.split('').every(l=>guessedLetters.includes(l))){
+        messageDiv.style.color="green";
+        messageDiv.textContent="🎉 You won! Congratulations!";
+        disableAllButtons();
+      }
+    }
+    function checkLose(){
+      if(wrongGuesses>=maxWrong){
+        messageDiv.style.color="red";
+        messageDiv.textContent=`💀 You lost! The word was: ${selectedWord}`;
+        disableAllButtons();
+      }
+    }
+    function disableAllButtons(){
+      lettersDiv.querySelectorAll('button').forEach(btn=>btn.disabled=true);
+    }
+
+    init();
+  </script>
+</body>
+</html>
